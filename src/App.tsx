@@ -1,142 +1,195 @@
 import { useState } from 'react';
-import { 
-  User, 
-  Truck, 
-  Compass, 
-  MapPin, 
-  MessageSquare, 
-  BookOpen, 
-  HelpCircle,
-  Clock,
-  Navigation,
-  ArrowRight
-} from 'lucide-react';
-import ClientTab from './components/ClientTab';
-import DriverTab from './components/DriverTab';
-
-type TabType = 'client' | 'driver';
+import { Menu, Navigation, BookOpen, HelpCircle } from 'lucide-react';
+import { translations } from './i18n';
+import SideMenu from './components/SideMenu';
+import HomePage from './pages/HomePage';
+import AboutPage from './pages/AboutPage';
+import DonatePage from './pages/DonatePage';
+import RoadmapPage from './pages/RoadmapPage';
+import InstallPrompt from './components/InstallPrompt';
+import { useTheme } from './context/ThemeContext';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<TabType>('client');
-  const [showHelp, setShowHelp] = useState(false);
+  const [page, setPage] = useState<string>('home');
+  const [menuOpen, setMenuOpen] = useState<boolean>(false);
+  const [lang, setLang] = useState<'fr' | 'en'>('fr');
+  const [showHelp, setShowHelp] = useState<boolean>(false);
+  const { theme } = useTheme();
+
+  const t = translations[lang];
+
+  // Helper function to render active page with complete state preservation
+  const renderPage = () => {
+    switch(page) {
+      case 'home': 
+        return <HomePage t={t} lang={lang} />;
+      case 'about': 
+        return <AboutPage t={t} />;
+      case 'donate': 
+        return <DonatePage t={t} />;
+      case 'roadmap': 
+        return <RoadmapPage t={t} />;
+      default: 
+        return <HomePage t={t} lang={lang} />;
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#0e1017] via-[#0b0c10] to-[#07080b] px-4 py-8 flex flex-col justify-between selection:bg-blue-500/30 selection:text-blue-200">
+    <div className="min-h-screen bg-theme-bg px-4 py-6 flex flex-col justify-between selection:bg-orange-500/30 selection:text-orange-200 relative overflow-hidden font-sans text-theme-text transition-colors duration-200">
       
-      {/* Centered Main Layout Block */}
-      <div className="w-full max-w-md mx-auto space-y-7">
+      {/* Background Ambient Glows */}
+      <div className="absolute top-0 right-0 w-[400px] h-[400px] rounded-full bg-orange-500/[0.04] blur-[125px] pointer-events-none -mr-48 -mt-24" />
+      <div className="absolute bottom-0 left-0 w-[450px] h-[450px] rounded-full bg-emerald-500/[0.04] blur-[130px] pointer-events-none -ml-52 -mb-28" />
+      
+      {/* SideMenu Drawer */}
+      <SideMenu
+        isOpen={menuOpen}
+        setIsOpen={setMenuOpen}
+        page={page}
+        setPage={setPage}
+        lang={lang}
+        setLang={setLang}
+        t={t}
+      />
+
+      {/* Main Container Layout */}
+      <div className="w-full max-w-md md:max-w-2xl lg:max-w-3xl mx-auto space-y-7 relative z-10 flex-1 flex flex-col justify-start">
         
-        {/* Header Section */}
-        <header className="text-center space-y-2 mt-2">
-          <div className="inline-flex items-center gap-2 border border-blue-500/20 bg-blue-500/5 px-2.5 py-1 rounded-full text-[11px] font-bold tracking-wider text-blue-400 uppercase select-none">
-            <Navigation size={12} className="text-blue-400 rotate-45 animate-pulse" />
-            Algs Geolocation App
+        {/* Top Navbar Header */}
+        <header className="flex items-center justify-between pb-3 border-b border-theme-border-thin mt-1">
+          <button 
+            onClick={() => setMenuOpen(true)}
+            className="p-2.5 bg-theme-card border border-theme-border rounded-2xl text-theme-text hover:text-orange-400 hover:bg-theme-card-hover transition-all flex items-center justify-center shadow-lg hover:scale-105 active:scale-95"
+            title="Menu"
+          >
+            <Menu size={20} />
+          </button>
+          
+          <div className="flex items-center gap-1.5 select-none font-sans font-black text-lg bg-clip-text text-transparent bg-gradient-to-r from-orange-400 to-orange-500">
+            <Navigation size={16} className="text-emerald-400 rotate-45 animate-pulse" />
+            <span>ALG<span className="text-theme-text">S</span></span>
           </div>
-          <h1 className="text-4xl font-extrabold text-white tracking-tight">
-            ALGS<span className="text-blue-500 text-3xl font-light">.</span>
-          </h1>
-          <p className="text-gray-400 text-xs font-medium max-w-[280px] mx-auto leading-relaxed">
-            Partagez votre position GPS de haute précision instantanément sur WhatsApp.
-          </p>
+
+          <div className="flex gap-1.5 bg-theme-card border border-theme-border-thin px-2.5 py-1.5 rounded-xl text-[10px] font-bold font-mono text-theme-text-secondary">
+            <button 
+              onClick={() => setLang('fr')} 
+              className={`hover:text-theme-text transition-colors uppercase ${lang === 'fr' ? 'text-orange-400 font-extrabold' : ''}`}
+            >
+              FR
+            </button>
+            <span className="text-theme-text-muted/40">•</span>
+            <button 
+              onClick={() => setLang('en')} 
+              className={`hover:text-theme-text transition-colors uppercase ${lang === 'en' ? 'text-orange-400 font-extrabold' : ''}`}
+            >
+              EN
+            </button>
+          </div>
         </header>
 
-        {/* Tab Selection Segments */}
-        <div className="bg-gray-900/60 p-1 rounded-2xl border border-gray-800 flex gap-2.5 shadow-xl backdrop-blur-md">
-          <button
-            id="tab-client-btn"
-            onClick={() => {
-              setActiveTab('client');
-              setErrorStateAndSuccessClear();
-            }}
-            className={`flex-1 py-3.5 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2.5 transition-all duration-300 ${
-              activeTab === 'client'
-                ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20 scale-[1.02]'
-                : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800/20'
-            }`}
-          >
-            <User size={15} />
-            Espace Client
-          </button>
-          
-          <button
-            id="tab-driver-btn"
-            onClick={() => {
-              setActiveTab('driver');
-              setErrorStateAndSuccessClear();
-            }}
-            className={`flex-1 py-3.5 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2.5 transition-all duration-300 ${
-              activeTab === 'driver'
-                ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/20 scale-[1.02]'
-                : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800/20'
-            }`}
-          >
-            <Truck size={15} />
-            Espace Livreur
-          </button>
-        </div>
-
-        {/* Dynamic Inner Tab Component View */}
-        <main className="min-h-[380px]">
-          {activeTab === 'client' ? <ClientTab /> : <DriverTab />}
+        {/* Dynamic Main Page Content */}
+        <main className="flex-1 min-h-[420px]">
+          {renderPage()}
         </main>
 
-        {/* Interactive Guide Collapse */}
-        <div className="bg-gray-950/60 rounded-3xl border border-gray-900 overflow-hidden transition-all duration-300">
-          <button
-            onClick={() => setShowHelp(!showHelp)}
-            className="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-gray-900/40 transition-colors"
-          >
-            <span className="text-xs font-bold text-gray-300 uppercase tracking-wider flex items-center gap-2">
-              <BookOpen size={14} className="text-blue-400" />
-              Comment ça fonctionne ?
-            </span>
-            <HelpCircle size={16} className={`text-gray-500 transition-transform ${showHelp ? 'rotate-180 text-blue-400' : ''}`} />
-          </button>
-          
-          {showHelp && (
-            <div className="px-5 pb-5 pt-1 space-y-4 border-t border-gray-900/60 text-xs text-gray-400 leading-relaxed">
-              <div className="space-y-3">
-                <p className="font-semibold text-gray-300 text-[11px] uppercase tracking-wider">🔄 Flux Client (Partage vers Livreur) :</p>
-                <ol className="list-decimal pl-4 space-y-2">
-                  <li>Saisissez le <strong>numéro du livreur</strong> (au format international, ex: <span className="font-mono text-blue-400">221782632977</span>).</li>
-                  <li>Cliquez sur <strong>Partager ma position GPS</strong>.</li>
-                  <li>L'application calcule vos coordonnées GPS satellites et ouvre automatiquement WhatsApp avec un message prérempli.</li>
-                  <li>Le livreur clique sur le lien et ouvre <strong>Google Maps</strong> directement pour vous livrer de manière fluide.</li>
-                </ol>
-              </div>
+        {/* Dynamic Help Component displayed on Home Page */}
+        {page === 'home' && (
+          <div className="bg-theme-card rounded-3xl border border-theme-border overflow-hidden transition-all duration-300">
+            <button
+              onClick={() => setShowHelp(!showHelp)}
+              className="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-theme-card-hover transition-colors"
+            >
+              <span className="text-xs font-bold text-theme-text uppercase tracking-wider flex items-center gap-2">
+                <BookOpen size={14} className="text-orange-400" />
+                {lang === 'fr' ? 'Comment ça fonctionne ?' : 'How does it work?'}
+              </span>
+              <HelpCircle size={16} className={`text-theme-text-muted transition-transform ${showHelp ? 'rotate-180 text-orange-400' : ''}`} />
+            </button>
+            
+            {showHelp && (
+              <div className="px-5 pb-5 pt-1 space-y-4 border-t border-theme-border text-xs text-theme-text-secondary leading-relaxed font-sans">
+                {lang === 'fr' ? (
+                  <>
+                    <div className="space-y-2">
+                      <p className="font-bold text-theme-text text-[11px] uppercase tracking-wider text-orange-300">🔄 Flux Client (Partage vers Livreur) :</p>
+                      <ol className="list-decimal pl-4 space-y-2 text-theme-text-secondary">
+                        <li>Saisissez le <strong>numéro du livreur</strong> (au format international, ex: <span className="font-mono text-orange-400">221782632977</span>).</li>
+                        <li>Cliquez sur <strong>Partager ma position GPS</strong>.</li>
+                        <li>L'application calcule vos coordonnées de haute précision et ouvre WhatsApp avec un message prérempli.</li>
+                        <li>Le livreur clique et suit l'itinéraire sur <strong>Google Maps</strong>.</li>
+                      </ol>
+                    </div>
 
-              <div className="space-y-3 pt-2">
-                <p className="font-semibold text-gray-300 text-[11px] uppercase tracking-wider">🏁 Flux Livreur (Partage vers Client) :</p>
-                <ol className="list-decimal pl-4 space-y-2">
-                  <li>Saisissez le <strong>numéro du client</strong> (ex: <span className="font-mono text-emerald-400">22177XXXXXXX</span>).</li>
-                  <li>Cliquez sur <strong>Envoyer ma position au client</strong>.</li>
-                  <li>Votre position satellite est transmise directement au client par WhatsApp, lui permettant de vous localiser sur l'itinéraire.</li>
-                </ol>
-              </div>
+                    <div className="space-y-2 pt-2 border-t border-theme-border-thin">
+                      <p className="font-bold text-theme-text text-[11px] uppercase tracking-wider text-emerald-300">🏁 Flux Livreur (Partage vers Client) :</p>
+                      <ol className="list-decimal pl-4 space-y-2 text-theme-text-secondary">
+                        <li>Saisissez le <strong>numéro du client</strong> (ex: <span className="font-mono text-emerald-400">22177XXXXXXX</span>).</li>
+                        <li>Cliquez sur <strong>Envoyer ma position au client</strong>.</li>
+                        <li>Vos coordonnées sont transmises pour permettre le suivi en direct sur Google Maps.</li>
+                      </ol>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="space-y-2">
+                      <p className="font-bold text-theme-text text-[11px] uppercase tracking-wider text-orange-300">🔄 Client Flow (Share to Driver) :</p>
+                      <ol className="list-decimal pl-4 space-y-2 text-theme-text-secondary">
+                        <li>Type the <strong>driver's number</strong> (with country code, eg: <span className="font-mono text-orange-400">221782632977</span>).</li>
+                        <li>Click <strong>Share my GPS Location</strong>.</li>
+                        <li>High precision coordinates are determined and deep-linked into WhatsApp with a ready message.</li>
+                        <li>The driver opens the link to navigate directly using <strong>Google Maps</strong>.</li>
+                      </ol>
+                    </div>
 
-              <div className="p-2.5 bg-blue-500/5 rounded-xl border border-blue-500/10 text-[11px] mt-2">
-                <p className="font-semibold text-blue-400">💡 Conseil d'utilisation :</p>
-                <p className="mt-0.5">Autorisez l'emplacement GPS pour de meilleurs résultats de précision, de préférence en extérieur pour un calibrage optimal.</p>
+                    <div className="space-y-2 pt-2 border-t border-theme-border-thin">
+                      <p className="font-bold text-theme-text text-[11px] uppercase tracking-wider text-emerald-300">🏁 Driver Flow (Share to Client) :</p>
+                      <ol className="list-decimal pl-4 space-y-2 text-theme-text-secondary">
+                        <li>Type the <strong>customer's phone number</strong> (eg: <span className="font-mono text-emerald-400">22177XXXXXXX</span>).</li>
+                        <li>Click <strong>Send my location to Client</strong>.</li>
+                        <li>Your GPS map coordinates are shared so the client knows exactly when you will arrive.</li>
+                      </ol>
+                    </div>
+                  </>
+                )}
+
+                <div className="p-3 bg-orange-500/5 rounded-xl border border-orange-500/20 text-[11px] mt-2">
+                  <p className="font-semibold text-orange-300">⚡ {lang === 'fr' ? "Calibrage GPS Optimal" : "Optimal GPS Calibration"} :</p>
+                  <p className="mt-0.5 text-theme-text-secondary">
+                    {lang === 'fr' 
+                      ? "Autorisez l'accès à l'emplacement GPS pour des résultats optimaux. Pour une précision parfaite, placez-vous à l'extérieur."
+                      : "Authorize location settings for best performance. For perfect satellite tracking, stand outside in an open area."}
+                  </p>
+                </div>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
 
       </div>
 
       {/* Footer Element */}
-      <footer className="w-full max-w-md mx-auto text-center mt-12 space-y-1">
-        <p className="text-[11px] text-gray-600 font-mono tracking-wide">
-          ALGS v1.0.0 • 100% Client-Side Local Storage
+      <footer className="w-full max-w-sm mx-auto text-center mt-12 space-y-2.5 relative z-10 select-none pb-2">
+        <p className="text-[10px] text-theme-text-muted font-mono tracking-wide">
+          ALGS v1.1.0 • PWA Enabled • Offline Responsive
         </p>
-        <p className="text-[10px] text-gray-700 leading-relaxed">
-          Propulsé par la géolocalisation haute fidélité du navigateur mobile. Aucun partage de données serveur.
+        <p className="text-[9px] text-theme-text-muted/70 leading-relaxed max-w-[280px] mx-auto">
+          {lang === 'fr' 
+            ? "Propulsé par la géolocalisation autonome haute fidélité. Aucun partage de données serveur."
+            : "Powered by high-precision on-device HTML5 GPS geolocation. Non-custodial privacy."}
         </p>
+        <div className="pt-2.5 border-t border-theme-border-thin text-[10px] text-theme-text-muted">
+          <span>Tout droit réservé • Développé par </span>
+          <a 
+            href="https://www.hardsoft-technologies.net" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-orange-400 hover:text-orange-300 transition-colors font-bold underline decoration-dotted underline-offset-4"
+          >
+            HardSoft Technologies
+          </a>
+        </div>
       </footer>
+      <InstallPrompt lang={lang} />
     </div>
   );
-
-  function setErrorStateAndSuccessClear() {
-    // Dynamic cleanup helper on tab change
-  }
 }

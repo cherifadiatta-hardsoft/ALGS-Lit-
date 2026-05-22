@@ -9,10 +9,13 @@ import {
   Compass, 
   History, 
   Phone,
-  ExternalLink
+  ExternalLink,
+  AlertTriangle,
+  X
 } from 'lucide-react';
 import { getCurrentPosition, createGoogleMapsLink, GeolocationResult, GeolocationError } from '../utils/geolocation';
 import { createWhatsAppLink, isValidInternationalPhone, formatPhoneForWhatsApp } from '../utils/whatsapp';
+import { TranslationSchema } from '../i18n';
 
 interface HistoryItem {
   id: string;
@@ -23,13 +26,19 @@ interface HistoryItem {
   mapsLink: string;
 }
 
-export default function DriverTab() {
+interface DriverTabProps {
+  t: TranslationSchema;
+  lang: 'fr' | 'en';
+}
+
+export default function DriverTab({ t, lang }: DriverTabProps) {
   const [driverPhone, setDriverPhone] = useState('');
   const [clientPhone, setClientPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [locationDetails, setLocationDetails] = useState<GeolocationResult | null>(null);
+  const [accuracyWarning, setAccuracyWarning] = useState<string | null>(null);
   const [history, setHistory] = useState<HistoryItem[]>([]);
 
   // Load saved configurations
@@ -64,14 +73,19 @@ export default function DriverTab() {
     setError('');
     setSuccess('');
     setLocationDetails(null);
+    setAccuracyWarning(null);
 
     if (!clientPhone.trim()) {
-      setError('⚠️ Le numéro de téléphone du client est requis.');
+      setError(t.home.driver.error);
       return;
     }
 
     if (!isValidInternationalPhone(clientPhone)) {
-      setError('⚠️ Format de numéro invalide. Assurez-vous d’entrer l’indicatif complet sans le signe "+" (ex: 221771234567).');
+      setError(
+        lang === 'fr' 
+          ? 'Format de numéro invalide. Assurez-vous d’entrer l’indicatif complet sans le signe "+" (ex: 221771234567).' 
+          : 'Invalid phone format. Please enter country code without "+" symbols (ex: 221771234567).'
+      );
       return;
     }
 
@@ -86,12 +100,22 @@ export default function DriverTab() {
       const lng = position.longitude;
       const mapsLink = createGoogleMapsLink(lat, lng);
 
+      if (position.accuracy > 100) {
+        setAccuracyWarning(
+          lang === 'fr'
+            ? `Attention : Votre précision GPS de ±${Math.round(position.accuracy)} mètres est faible (supérieure à 100 mètres). La localisation obtenue pourrait être imprécise. Nous vous suggérons de vous déplacer vers un espace ouvert en extérieur pour un meilleur calibrage avant de partager.`
+            : `Warning: Your GPS accuracy of ±${Math.round(position.accuracy)} meters is low (above 100 meters). The location obtained may be inaccurate. We suggest moving to an open outdoor space for a better calibration before sharing.`
+        );
+      }
+
       // Step 2: Formulate message
-      const timestampLabel = new Date(position.timestamp).toLocaleTimeString('fr-FR', {
+      const timestampLabel = new Date(position.timestamp).toLocaleTimeString(lang === 'fr' ? 'fr-FR' : 'en-US', {
         hour: '2-digit',
         minute: '2-digit'
       });
-      const message = `🚚 *ALGS - Suivi du Livreur*\n\nBonjour ! Je suis en route pour votre livraison. Voici ma position actuelle en temps réel (${timestampLabel}) :\n${mapsLink}\n\n_Suivez mon itinéraire en ouvrant directement ce lien sur Google Maps._`;
+      const message = lang === 'fr'
+        ? `🚚 *ALGS - Suivi du Livreur*\n\nBonjour ! Je suis en route pour votre livraison. Voici ma position actuelle en temps réel (${timestampLabel}) :\n${mapsLink}\n\n_Suivez mon itinéraire en ouvrant directement ce lien sur Google Maps._`
+        : `🚚 *ALGS - Driver Tracker*\n\nHello! I am on my way with your delivery. Here is my current real-time GPS position (${timestampLabel}) :\n${mapsLink}\n\n_Track my route by opening this link on Google Maps._`;
 
       // Step 3: Formulate deep link with client's phone
       const waLink = createWhatsAppLink(clientPhone, message);
@@ -115,7 +139,11 @@ export default function DriverTab() {
       setHistory(updatedHistory);
       localStorage.setItem('algs_driver_history', JSON.stringify(updatedHistory));
 
-      setSuccess(`Position GPS acquise avec succès (Précision ±${Math.round(position.accuracy)}m). Lancement de WhatsApp en cours...`);
+      setSuccess(
+        lang === 'fr'
+          ? `Position GPS acquise avec succès (Précision ±${Math.round(position.accuracy)}m). Lancement de WhatsApp en cours...`
+          : `GPS position successfully acquired (Accuracy ±${Math.round(position.accuracy)}m). Redirecting to WhatsApp...`
+      );
 
       // Step 5: Redirect to target WhatsApp Chat
       setTimeout(() => {
@@ -126,115 +154,153 @@ export default function DriverTab() {
       if (err instanceof GeolocationError) {
         setError(err.message);
       } else {
-        setError("Erreur de calcul GPS. Vérifiez que les autorisations de localisation mobile sont actives.");
+        setError(t.home.driver.gpsError);
       }
     } finally {
       setLoading(false);
     }
   };
 
-  // Help user auto-detect formatted wa.me numbers
-  const clientWhatsAppFormatted = formatPhoneForWhatsApp(clientPhone);
-  const showPhoneFormatWarning = clientPhone.trim().length > 0 && !clientPhone.startsWith('+') && !/^\d{11,15}$/.test(clientWhatsAppFormatted);
+  // Warning indicators for numbers
+  const isClientPhoneValid = !clientPhone.trim() || isValidInternationalPhone(clientPhone);
+  const showPhoneFormatWarning = clientPhone.trim().length > 0 && !isClientPhoneValid;
 
   return (
-    <div className="space-y-6 animate-fade-in text-gray-200">
+    <div className="space-y-6 animate-fade-in text-theme-text">
+      {/* Accuracy Warning Toast */}
+      {accuracyWarning && (
+        <div className="fixed bottom-6 left-4 right-4 md:left-auto md:right-6 md:max-w-md bg-theme-card border border-orange-500/40 p-4 rounded-2xl flex items-start gap-3.5 shadow-[0_20px_50px_rgba(249,115,22,0.15)] z-50 animate-fade-in backdrop-blur-xl">
+          <div className="bg-orange-500/10 p-2 rounded-xl border border-orange-500/20 text-orange-400 shrink-0">
+            <AlertTriangle size={18} />
+          </div>
+          <div className="flex-1 space-y-1">
+            <h5 className="font-bold text-xs text-orange-300 uppercase tracking-wider">
+              {lang === 'fr' ? 'Précision Minimale non atteinte' : 'Low Accuracy Warning'}
+            </h5>
+            <p className="text-xs text-theme-text-secondary leading-relaxed font-sans">{accuracyWarning}</p>
+          </div>
+          <button 
+            onClick={() => setAccuracyWarning(null)}
+            className="text-theme-text-muted hover:text-theme-text transition-colors p-1"
+            title="Fermer"
+          >
+            <X size={16} />
+          </button>
+        </div>
+      )}
+
       {/* Dynamic Header Badge */}
-      <div className="bg-emerald-600/10 border border-emerald-500/20 px-4 py-3 rounded-2xl flex items-center gap-3">
+      <div className="bg-emerald-600/10 border border-emerald-500/30 px-4 py-3 rounded-2xl flex items-center gap-3 animate-fade-in">
         <Truck className="text-emerald-400 shrink-0" size={24} />
         <div>
-          <h4 className="font-semibold text-emerald-300 text-sm">Mode Livreur</h4>
-          <p className="text-xs text-gray-400">Envoyez vos coordonnées GPS de déplacement au client par WhatsApp pour qu'il suive votre trajet.</p>
+          <h4 className="font-semibold text-emerald-300 text-sm">{t.home.driverTab}</h4>
+          <p className="text-xs text-theme-text-secondary leading-normal">
+            {lang === 'fr'
+              ? 'Transmettez votre position GPS au client pendant la course pour lui permettre de vous suivre.'
+              : 'Share your live GPS tracker with safety maps directly to the client while delivering packages.'}
+          </p>
         </div>
       </div>
 
-      <div className="bg-gray-900/60 p-6 rounded-3xl border border-gray-800 space-y-5 shadow-2xl backdrop-blur-md">
-        <h3 className="text-xl font-bold text-white flex items-center gap-2">
+      <div className="bg-theme-card p-6 rounded-3xl border border-theme-border space-y-5 shadow-2xl backdrop-blur-md">
+        <h3 className="text-xl font-bold text-theme-text flex items-center gap-2">
           <Compass className="text-emerald-500 animate-pulse" size={20} />
-          Informations de Course
+          {t.home.driver.title}
         </h3>
 
         <div className="space-y-4">
-          {/* DRIVER PHONE */}
-          <div className="space-y-1">
-            <label className="text-xs font-semibold text-gray-300 uppercase tracking-wider block">
-              Mon Numéro WhatsApp (Livreur) (Facultatif)
-            </label>
-            <div className="relative">
-              <span className="absolute left-4 top-3.5 text-gray-500 text-sm font-mono">+</span>
-              <input
-                type="tel"
-                value={driverPhone}
-                onChange={(e) => setDriverPhone(e.target.value)}
-                onBlur={handleSaveDriverPhone}
-                placeholder="221782632977"
-                className="w-full pl-8 pr-4 py-3 bg-gray-950/80 rounded-2xl border border-gray-800 text-white placeholder-gray-600 font-mono text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all"
-              />
-            </div>
-            <p className="text-[10px] text-gray-500">Mémorise votre numéro pour vos prochaines livraisons.</p>
-          </div>
-
-          {/* CLIENT PHONE */}
-          <div className="space-y-1">
-            <label className="text-xs font-semibold text-gray-300 uppercase tracking-wider block">
-              Numéro de téléphone du client <span className="text-emerald-400 font-bold">*</span>
-            </label>
-            <div className="relative">
-              <span className="absolute left-4 top-3.5 text-gray-500 text-sm font-mono">+</span>
-              <input
-                type="tel"
-                value={clientPhone}
-                onChange={(e) => setClientPhone(e.target.value)}
-                onBlur={handleSaveClientPhone}
-                placeholder="22177XXXXXXX"
-                className="w-full pl-8 pr-12 py-3.5 bg-gray-950/80 rounded-2xl border border-gray-800 text-white placeholder-gray-600 font-mono text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all"
-              />
-              <span className="absolute right-4 top-3.5">
-                <Phone size={18} className="text-gray-500" />
-              </span>
-            </div>
-            {showPhoneFormatWarning && (
-              <p className="text-[11px] text-amber-400 bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded-lg mt-1">
-                💡 Pensez à inclure l'indicatif sans le symbole "+" (ex: <strong>221</strong> pour le Sénégal, <strong>33</strong> pour la France).
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* DRIVER PHONE */}
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-theme-text-secondary uppercase tracking-wider block">
+                {t.home.driver.myPhone}
+              </label>
+              <div className="relative">
+                <span className="absolute left-4 top-3.5 text-theme-text-muted text-sm font-mono">+</span>
+                <input
+                  type="tel"
+                  value={driverPhone}
+                  onChange={(e) => setDriverPhone(e.target.value)}
+                  onBlur={handleSaveDriverPhone}
+                  placeholder="221781234567"
+                  className="w-full pl-8 pr-4 py-3 bg-theme-input rounded-2xl border border-theme-border text-theme-text placeholder-theme-text-muted/60 font-mono text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all"
+                />
+              </div>
+              <p className="text-[10px] text-theme-text-muted">
+                {lang === 'fr' 
+                  ? 'Permet de mémoriser votre numéro sur cet appareil.' 
+                  : 'Saves your driver phone number on this local device.'}
               </p>
-            )}
+            </div>
+
+            {/* CLIENT PHONE */}
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-theme-text-secondary uppercase tracking-wider block">
+                {t.home.driver.clientPhone} <span className="text-emerald-400 font-bold">*</span>
+              </label>
+              <div className="relative">
+                <span className="absolute left-4 top-3.5 text-theme-text-muted text-sm font-mono">+</span>
+                <input
+                  type="tel"
+                  value={clientPhone}
+                  onChange={(e) => setClientPhone(e.target.value)}
+                  onBlur={handleSaveClientPhone}
+                  placeholder="221771234567"
+                  className="w-full pl-8 pr-12 py-3.5 bg-theme-input rounded-2xl border border-theme-border text-theme-text placeholder-theme-text-muted/60 font-mono text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all"
+                />
+                <span className="absolute right-4 top-3.5">
+                  <Phone size={18} className="text-theme-text-muted" />
+                </span>
+              </div>
+              {showPhoneFormatWarning && (
+                <p className="text-[11px] text-amber-300 bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 rounded-lg mt-1">
+                  {lang === 'fr'
+                    ? '💡 Format recommandé : Saisissez l’indicatif sans le signe "+" (ex: 221771234567 pour le Sénégal, 33... pour la France).'
+                    : '💡 Recommended format: Enter your country code and phone number without "+" (ex: 221771234567).'}
+                </p>
+              )}
+            </div>
           </div>
 
-          {/* NOTIFICATION LOGS */}
+          {/* STATUS NOTIFICATIONS */}
           {error && (
-            <div className="flex gap-2 text-sm text-red-400 bg-red-950/30 border border-red-500/20 p-3.5 rounded-2xl">
+            <div className="flex gap-2 text-sm text-red-550 bg-red-500/10 border border-red-500/30 p-3.5 rounded-2xl animate-fade-in dark:text-red-300 dark:bg-red-950/40">
               <AlertCircle size={18} className="shrink-0 mt-0.5" />
               <div>
-                <p className="font-semibold text-xs">Erreur de localisation</p>
-                <p className="text-xs leading-relaxed opacity-90">{error}</p>
+                <p className="font-semibold text-xs text-red-600 dark:text-red-200">
+                  {lang === 'fr' ? 'Erreur GPS' : 'GPS Error'}
+                </p>
+                <p className="text-xs leading-relaxed opacity-95">{error}</p>
               </div>
             </div>
           )}
 
           {success && (
-            <div className="flex gap-2 text-sm text-emerald-400 bg-emerald-950/30 border border-emerald-500/20 p-3.5 rounded-2xl">
+            <div className="flex gap-2 text-sm text-green-650 bg-green-500/10 border border-green-500/30 p-3.5 rounded-2xl animate-fade-in dark:text-green-300 dark:bg-green-950/40">
               <CheckCircle2 size={18} className="shrink-0 mt-0.5" />
               <div>
-                <p className="font-semibold text-xs text-emerald-300">Succès</p>
-                <p className="text-xs leading-relaxed opacity-90">{success}</p>
+                <p className="font-semibold text-xs text-green-600 dark:text-green-200">
+                  {lang === 'fr' ? 'Succès' : 'Success'}
+                </p>
+                <p className="text-xs leading-relaxed opacity-95">{success}</p>
               </div>
             </div>
           )}
 
           {/* GPS METADATA OVERLAY */}
           {locationDetails && (
-            <div className="p-3 bg-gray-950/50 rounded-xl border border-gray-800 text-xs font-mono space-y-1">
-              <p className="text-gray-400 flex justify-between">
+            <div className="p-3 bg-theme-input rounded-xl border border-theme-border text-xs font-mono space-y-1">
+              <p className="text-theme-text-secondary flex justify-between">
                 <span>Latitude :</span>
-                <span className="text-white font-medium">{locationDetails.latitude.toFixed(6)}</span>
+                <span className="text-theme-text font-medium">{locationDetails.latitude.toFixed(6)}</span>
               </p>
-              <p className="text-gray-400 flex justify-between">
+              <p className="text-theme-text-secondary flex justify-between">
                 <span>Longitude :</span>
-                <span className="text-white font-medium">{locationDetails.longitude.toFixed(6)}</span>
+                <span className="text-theme-text font-medium">{locationDetails.longitude.toFixed(6)}</span>
               </p>
-              <p className="text-gray-400 flex justify-between">
-                <span>Précision GPS :</span>
-                <span className="text-emerald-400 font-medium">± {Math.round(locationDetails.accuracy)} mètres</span>
+              <p className="text-theme-text-secondary flex justify-between">
+                <span>{lang === 'fr' ? 'Précision GPS :' : 'GPS Accuracy :'}</span>
+                <span className="text-emerald-400 font-medium">± {Math.round(locationDetails.accuracy)} {lang === 'fr' ? 'mètres' : 'meters'}</span>
               </p>
             </div>
           )}
@@ -243,43 +309,43 @@ export default function DriverTab() {
           <button
             onClick={handleShareLocation}
             disabled={loading}
-            className="w-full relative group bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 disabled:from-gray-800 disabled:to-gray-800 disabled:cursor-not-allowed text-white py-4 px-6 rounded-2xl font-bold flex items-center justify-center gap-3 transition-all duration-300 shadow-lg shadow-emerald-500/15"
+            className="w-full relative group bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 disabled:from-gray-800 disabled:to-gray-800 disabled:cursor-not-allowed text-white py-4 px-6 rounded-2xl font-bold flex items-center justify-center gap-3 transition-all duration-300 shadow-lg shadow-emerald-500/15"
           >
             {loading ? (
               <>
                 <Loader2 className="animate-spin text-white" size={20} />
-                <span>Identification GPS...</span>
+                <span>{t.home.driver.loading}</span>
               </>
             ) : (
               <>
-                <Send size={20} className="text-emerald-100 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
-                <span>📍 Envoyer ma position au client</span>
+                <Send size={18} className="text-emerald-100 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                <span>{t.home.driver.shareBtn}</span>
               </>
             )}
           </button>
 
-          <p className="text-xs text-gray-500 text-center">
-            Cette action envoie vos coordonnées réelles pour que le client active l'itinéraire Google Maps.
+          <p className="text-xs text-theme-text-muted text-center leading-normal">
+            {t.home.driver.note}
           </p>
         </div>
       </div>
 
-      {/* RECENT DRIVER HISTORIC ACTIONS */}
+      {/* RECENT HISTORIC ACTIONS */}
       {history.length > 0 && (
-        <div className="bg-gray-900/40 p-5 rounded-3xl border border-gray-800 space-y-3.5 shadow-xl">
-          <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
-            <History size={14} className="text-gray-400" />
-            Historique récent (Livreur)
+        <div className="bg-theme-card p-5 rounded-3xl border border-theme-border space-y-3.5 shadow-xl">
+          <h4 className="text-xs font-bold text-theme-text-secondary uppercase tracking-wider flex items-center gap-2">
+            <History size={14} className="text-theme-text-muted" />
+            {lang === 'fr' ? 'Historique de partage (Livreur)' : 'Sharing History (Driver)'}
           </h4>
-          <div className="divide-y divide-gray-800/80 space-y-2.5">
+          <div className="divide-y divide-theme-border space-y-2.5">
             {history.map((item) => (
-              <div key={item.id} className="pt-2.5 first:pt-0 flex justify-between items-center text-xs">
+              <div key={item.id} className="pt-2.5 first:pt-0 flex justify-between items-center text-xs text-theme-text">
                 <div>
-                  <p className="font-semibold text-gray-300 flex items-center gap-1">
-                    Client : <span className="font-mono text-emerald-400">+{item.clientPhone}</span>
+                  <p className="font-semibold text-theme-text flex items-center gap-1">
+                    {lang === 'fr' ? 'Destinataire (Client)' : 'Recipient (Client)'} : <span className="font-mono text-emerald-400">+{item.clientPhone}</span>
                   </p>
-                  <p className="text-[10px] text-gray-500 mt-0.5">
-                    {new Date(item.timestamp).toLocaleString('fr-FR', {
+                  <p className="text-[10px] text-theme-text-muted mt-0.5 font-mono">
+                    {new Date(item.timestamp).toLocaleString(lang === 'fr' ? 'fr-FR' : 'en-US', {
                       day: '2-digit',
                       month: '2-digit',
                       hour: '2-digit',
@@ -291,9 +357,9 @@ export default function DriverTab() {
                   href={item.mapsLink}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-1 bg-gray-800 hover:bg-gray-700/80 border border-gray-700 font-medium text-gray-300 px-2.5 py-1.5 rounded-xl transition-all"
+                  className="flex items-center gap-1 bg-theme-card hover:bg-theme-card-hover border border-theme-border font-medium text-theme-text px-2.5 py-1.5 rounded-xl transition-all font-mono"
                 >
-                  Maps <ExternalLink size={12} className="text-gray-400" />
+                  Maps <ExternalLink size={12} className="text-theme-text-muted" />
                 </a>
               </div>
             ))}
@@ -303,9 +369,9 @@ export default function DriverTab() {
               setHistory([]);
               localStorage.removeItem('algs_driver_history');
             }}
-            className="text-[10px] font-semibold text-red-400/80 hover:text-red-400 transition-colors w-full text-center"
+            className="text-[10px] font-bold text-red-400 hover:text-red-350 transition-colors w-full text-center tracking-wider"
           >
-            Vider l'historique
+            {lang === 'fr' ? "VIDER L'HISTORIQUE" : "CLEAR HISTORY"}
           </button>
         </div>
       )}

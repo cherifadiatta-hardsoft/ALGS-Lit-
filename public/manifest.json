@@ -1,0 +1,32 @@
+{
+  "name": "ALGS — Géolocalisation & Partage",
+  "short_name": "ALGS",
+  "description": "Partagez votre position GPS en un clic avec votre livreur ou client via WhatsApp et ouvrez l'itinéraire sur Google Maps.",
+  "id": "/",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#06080c",
+  "theme_color": "#06080c",
+  "categories": ["utilities", "navigation"],
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

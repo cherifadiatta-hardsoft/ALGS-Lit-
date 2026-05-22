@@ -4,6 +4,43 @@
 @theme {
   --font-sans: "Plus Jakarta Sans", "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --color-theme-bg: var(--theme-bg);
+  --color-theme-card: var(--theme-card);
+  --color-theme-card-hover: var(--theme-card-hover);
+  --color-theme-input: var(--theme-input);
+  --color-theme-border: var(--theme-border);
+  --color-theme-border-thin: var(--theme-border-thin);
+  --color-theme-text: var(--theme-text);
+  --color-theme-text-secondary: var(--theme-text-secondary);
+  --color-theme-text-muted: var(--theme-text-muted);
+}
+
+:root {
+  --theme-bg: #06080c;
+  --theme-card: rgba(255, 255, 255, 0.04);
+  --theme-card-hover: rgba(255, 255, 255, 0.08);
+  --theme-input: rgba(0, 0, 0, 0.4);
+  --theme-border: rgba(255, 255, 255, 0.1);
+  --theme-border-thin: rgba(255, 255, 255, 0.05);
+  --theme-text: #ffffff;
+  --theme-text-secondary: rgba(255, 255, 255, 0.85);
+  --theme-text-muted: rgba(255, 255, 255, 0.5);
+  --scroll-track: #0f1115;
+  --scroll-thumb: #1f2937;
+}
+
+:root.light {
+  --theme-bg: #f8fafc;
+  --theme-card: #ffffff;
+  --theme-card-hover: #f1f5f9;
+  --theme-input: #f1f5f9;
+  --theme-border: #e2e8f0;
+  --theme-border-thin: #f1f5f9;
+  --theme-text: #0f172a;
+  --theme-text-secondary: #334155;
+  --theme-text-muted: #64748b;
+  --scroll-track: #f1f5f9;
+  --scroll-thumb: #cbd5e1;
 }
 
 /* Custom fine-grained mobile animations */
@@ -23,24 +60,26 @@
 }
 
 body {
-  background-color: #0c0d12;
-  color: #f3f4f6;
+  background-color: var(--theme-bg);
+  color: var(--theme-text);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.25s ease-in-out, color 0.25s ease-in-out;
 }
 
-/* Customized scrollbars for elegant dark UI */
+/* Customized scrollbars for elegant UI */
 ::-webkit-scrollbar {
   width: 5px;
 }
 ::-webkit-scrollbar-track {
-  background: #0f1115;
+  background: var(--scroll-track);
 }
 ::-webkit-scrollbar-thumb {
-  background: #1f2937;
+  background: var(--scroll-thumb);
   border-radius: 99px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #374151;
+  background: var(--scroll-thumb);
+  opacity: 0.8;
 }
