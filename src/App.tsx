@@ -7,11 +7,13 @@ import AboutPage from './pages/AboutPage';
 import DonatePage from './pages/DonatePage';
 import RoadmapPage from './pages/RoadmapPage';
 import PrivacyPage from './pages/PrivacyPage';
+import TrackingPage from './pages/TrackingPage';
 import InstallPrompt from './components/InstallPrompt';
 import { useTheme } from './context/ThemeContext';
 
 export default function App() {
   const [page, setPage] = useState<string>('home');
+  const [trackingId, setTrackingId] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState<boolean>(false);
   const [lang, setLang] = useState<'fr' | 'en'>('fr');
   const [showHelp, setShowHelp] = useState<boolean>(false);
@@ -19,6 +21,16 @@ export default function App() {
   const { theme } = useTheme();
 
   const t = translations[lang];
+
+  // Parse track param on mount
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const trackId = params.get('track');
+    if (trackId) {
+      setTrackingId(trackId);
+      setPage('track');
+    }
+  }, []);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -92,6 +104,18 @@ export default function App() {
         return <RoadmapPage t={t} />;
       case 'privacy':
         return <PrivacyPage t={t} lang={lang} onBackToHome={() => setPage('home')} />;
+      case 'track':
+        return (
+          <TrackingPage 
+            shareId={trackingId || ''} 
+            lang={lang} 
+            onBackToHome={() => {
+              setPage('home');
+              setTrackingId(null);
+              window.history.replaceState({}, '', window.location.pathname);
+            }} 
+          />
+        );
       default: 
         return <HomePage t={t} lang={lang} />;
     }

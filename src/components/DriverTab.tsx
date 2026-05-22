@@ -16,6 +16,8 @@ import {
 import { getCurrentPosition, createGoogleMapsLink, GeolocationResult, GeolocationError } from '../utils/geolocation';
 import { createWhatsAppLink, isValidInternationalPhone, formatPhoneForWhatsApp } from '../utils/whatsapp';
 import { TranslationSchema } from '../i18n';
+import { createShareRecord, updateShareCoordinates } from '../utils/supabase';
+
 
 interface HistoryItem {
   id: string;
@@ -40,6 +42,32 @@ export default function DriverTab({ t, lang }: DriverTabProps) {
   const [locationDetails, setLocationDetails] = useState<GeolocationResult | null>(null);
   const [accuracyWarning, setAccuracyWarning] = useState<string | null>(null);
   const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [activeShareId, setActiveShareId] = useState<string | null>(null);
+  const [isBroadcasting, setIsBroadcasting] = useState<boolean>(false);
+  const [lastBroadcastTime, setLastBroadcastTime] = useState<Date | null>(null);
+
+  // Passive background tracking updates every 20s if sharing is active
+  useEffect(() => {
+    if (!activeShareId || !isBroadcasting) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const position = await getCurrentPosition(10000);
+        setLocationDetails(position);
+        await updateShareCoordinates(
+          activeShareId,
+          position.latitude,
+          position.longitude,
+          position.accuracy
+        );
+        setLastBroadcastTime(new Date());
+      } catch (err) {
+        console.error("Background location update failed:", err);
+      }
+    }, 20000);
+
+    return () => clearInterval(interval);
+  }, [activeShareId, isBroadcasting]);
 
   // Load saved configurations
   useEffect(() => {
@@ -108,16 +136,30 @@ export default function DriverTab({ t, lang }: DriverTabProps) {
         );
       }
 
-      // Step 2: Formulate message
+      // Step 2: Try creating Supabase Share Record for online live tracking
+      const shareId = await createShareRecord({
+        type: 'driver',
+        sender_phone: driverPhone || 'Driver',
+        recipient_phone: clientPhone,
+        latitude: lat,
+        longitude: lng,
+        accuracy: position.accuracy,
+      });
+
+      // Step 3: Formulate message
       const timestampLabel = new Date(position.timestamp).toLocaleTimeString(lang === 'fr' ? 'fr-FR' : 'en-US', {
         hour: '2-digit',
         minute: '2-digit'
       });
-      const message = lang === 'fr'
-        ? `🚚 *ALGS - Suivi du Livreur*\n\nBonjour ! Je suis en route pour votre livraison. Voici ma position actuelle en temps réel (${timestampLabel}) :\n${mapsLink}\n\n_Suivez mon itinéraire en ouvrant directement ce lien sur Google Maps._`
-        : `🚚 *ALGS - Driver Tracker*\n\nHello! I am on my way with your delivery. Here is my current real-time GPS position (${timestampLabel}) :\n${mapsLink}\n\n_Track my route by opening this link on Google Maps._`;
 
-      // Step 3: Formulate deep link with client's phone
+      const appUrl = (import.meta as any).env.VITE_APP_URL || window.location.origin;
+      const trackingPageLink = shareId ? `${appUrl}/?track=${shareId}` : '';
+
+      const message = lang === 'fr'
+        ? `🚚 *ALGS - Suivi du Livreur*\n\nBonjour ! Je suis en route pour votre livraison. Voici ma position actuelle en temps réel (${timestampLabel}) :\n${mapsLink}${trackingPageLink ? `\n\n📡 *Suivi en Temps Réel ALGS Live* (Recommandé) :\n${trackingPageLink}` : ''}\n\n_Suivez mon itinéraire en ouvrant de préférence le lien en direct._`
+        : `🚚 *ALGS - Driver Tracker*\n\nHello! I am on my way with your delivery. Here is my current real-time GPS position (${timestampLabel}) :\n${mapsLink}${trackingPageLink ? `\n\n📡 *ALGS Real-Time Live Tracking* (Recommended) :\n${trackingPageLink}` : ''}\n\n_Track my live route by opening the live tracker link._`;
+
+      // Step 4: Formulate deep link with client's phone
       const waLink = createWhatsAppLink(clientPhone, message);
 
       // Save credentials for reuse
@@ -126,18 +168,24 @@ export default function DriverTab({ t, lang }: DriverTabProps) {
         handleSaveDriverPhone();
       }
 
-      // Step 4: Record to local history logs
+      // Step 5: Record to local history logs
       const newItem: HistoryItem = {
-        id: Math.random().toString(36).substring(2, 9),
+        id: shareId || Math.random().toString(36).substring(2, 9),
         timestamp: Date.now(),
         clientPhone: clientPhone,
         latitude: lat,
         longitude: lng,
-        mapsLink: mapsLink
+        mapsLink: trackingPageLink || mapsLink
       };
       const updatedHistory = [newItem, ...history].slice(0, 10);
       setHistory(updatedHistory);
       localStorage.setItem('algs_driver_history', JSON.stringify(updatedHistory));
+
+      if (shareId) {
+        setActiveShareId(shareId);
+        setIsBroadcasting(true);
+        setLastBroadcastTime(new Date());
+      }
 
       setSuccess(
         lang === 'fr'
@@ -261,6 +309,38 @@ export default function DriverTab({ t, lang }: DriverTabProps) {
               )}
             </div>
           </div>
+
+          {/* LIVE BROADCAST STATUS CARD */}
+          {activeShareId && isBroadcasting && (
+            <div className="bg-emerald-500/10 border border-emerald-500/40 p-4 rounded-2xl space-y-3 animate-pulse-slow">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping shrink-0" />
+                  <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">
+                    {lang === 'fr' ? '📡 Partage Live Activé (Livreur)' : '📡 Live GPS Broadcasting (Driver)'}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsBroadcasting(false)}
+                  className="text-[10px] font-bold text-red-500 hover:text-red-400 transition-colors uppercase font-mono"
+                >
+                  {lang === 'fr' ? 'Arrêter' : 'Stop'}
+                </button>
+              </div>
+              <p className="text-xs text-theme-text-secondary leading-normal">
+                {lang === 'fr'
+                  ? 'Votre navigateur transmet votre position GPS en temps réel. Le client peut voir vos deplacements en direct sur la carte live de ALGS sans recharger.'
+                  : 'Your browser is updating your GPS coordinates automatically. The client can follow you on the ALGS live map in real time!'}
+              </p>
+              {lastBroadcastTime && (
+                <p className="text-[10px] text-theme-text-muted font-mono flex justify-between">
+                  <span>{lang === 'fr' ? 'Dernière transmission :' : 'Last transmission:'}</span>
+                  <span>{lastBroadcastTime.toLocaleTimeString()}</span>
+                </p>
+              )}
+            </div>
+          )}
 
           {/* STATUS NOTIFICATIONS */}
           {error && (
