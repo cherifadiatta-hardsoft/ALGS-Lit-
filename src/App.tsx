@@ -6,6 +6,7 @@ import HomePage from './pages/HomePage';
 import AboutPage from './pages/AboutPage';
 import DonatePage from './pages/DonatePage';
 import RoadmapPage from './pages/RoadmapPage';
+import PrivacyPage from './pages/PrivacyPage';
 import InstallPrompt from './components/InstallPrompt';
 import { useTheme } from './context/ThemeContext';
 
@@ -29,6 +30,8 @@ export default function App() {
         return <DonatePage t={t} />;
       case 'roadmap': 
         return <RoadmapPage t={t} />;
+      case 'privacy':
+        return <PrivacyPage t={t} lang={lang} onBackToHome={() => setPage('home')} />;
       default: 
         return <HomePage t={t} lang={lang} />;
     }
