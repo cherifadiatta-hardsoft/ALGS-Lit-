@@ -43,6 +43,10 @@ export default function ClientTab({ t, lang }: ClientTabProps) {
   const [activeShareId, setActiveShareId] = useState<string | null>(null);
   const [isBroadcasting, setIsBroadcasting] = useState<boolean>(false);
   const [lastBroadcastTime, setLastBroadcastTime] = useState<Date | null>(null);
+  const [autoClear, setAutoClear] = useState<boolean>(() => {
+    const saved = localStorage.getItem('algs_auto_clear_after_share');
+    return saved ? saved === 'true' : true;
+  });
 
   // Passive background tracking updates every 20s if sharing is active
   useEffect(() => {
@@ -66,6 +70,17 @@ export default function ClientTab({ t, lang }: ClientTabProps) {
 
     return () => clearInterval(interval);
   }, [activeShareId, isBroadcasting]);
+
+  // Resource capacity manager: auto-stop broadcasting after 15 minutes of inactivity to save bandwidth & client battery
+  useEffect(() => {
+    if (!isBroadcasting) return;
+
+    const timeout = setTimeout(() => {
+      setIsBroadcasting(false);
+    }, 15 * 60 * 1000);
+
+    return () => clearTimeout(timeout);
+  }, [isBroadcasting]);
 
   // Load saved numbers on mount
   useEffect(() => {
@@ -194,6 +209,12 @@ export default function ClientTab({ t, lang }: ClientTabProps) {
       // Step 5: Trigger WhatsApp opening
       setTimeout(() => {
         window.open(waLink, '_blank');
+        if (autoClear) {
+          // Vidange instantanée des informations saisies pour libérer le cache et protéger la confidentialité multi-utilisateurs
+          setDriverPhone('');
+          localStorage.removeItem('algs_driver_phone_recipient');
+          setLocationDetails(null);
+        }
       }, 800);
 
     } catch (err: any) {
@@ -405,6 +426,52 @@ export default function ClientTab({ t, lang }: ClientTabProps) {
           <p className="text-xs text-theme-text-muted text-center leading-normal">
             {t.home.client.note}
           </p>
+
+          {/* PRIVACY & AUTO-CLEAR SECURITY SETTINGS */}
+          <div className="pt-4 border-t border-theme-border-thin space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  id="client-auto-clear-toggle"
+                  checked={autoClear}
+                  onChange={(e) => {
+                    setAutoClear(e.target.checked);
+                    localStorage.setItem('algs_auto_clear_after_share', String(e.target.checked));
+                  }}
+                  className="rounded border-theme-border text-orange-500 focus:ring-orange-500 bg-theme-input"
+                />
+                <span className="text-[11px] font-bold text-theme-text-secondary uppercase tracking-wider">
+                  {lang === 'fr' ? '🧹 Auto-vidange après partage' : '🧹 Auto-clear after sharing'}
+                </span>
+              </label>
+
+              <button
+                type="button"
+                id="client-manual-wipe-btn"
+                onClick={() => {
+                  setClientPhone('');
+                  setDriverPhone('');
+                  setLocationDetails(null);
+                  setError('');
+                  setSuccess('');
+                  setIsBroadcasting(false);
+                  localStorage.removeItem('algs_client_phone');
+                  localStorage.removeItem('algs_driver_phone_recipient');
+                  localStorage.removeItem('algs_client_history');
+                  setHistory([]);
+                }}
+                className="text-[10px] font-bold text-red-400 hover:text-red-350 transition-colors uppercase font-mono tracking-wider"
+              >
+                {lang === 'fr' ? 'Vider tout le cache' : 'Wipe all cache'}
+              </button>
+            </div>
+            <p className="text-[10px] text-theme-text-muted leading-relaxed font-sans">
+              {lang === 'fr'
+                ? "Libère instantanément les ressources de l'appareil. Idéal lorsque plusieurs personnes partagent le même téléphone : évite que d'anciennes coordonnées ou de vieux numéros ne restent visibles."
+                : "Instantly releases device resources. Highly recommended when multiple people share the same phone: prevents older details or phone numbers from staying stored/visible."}
+            </p>
+          </div>
         </div>
       </div>
 
