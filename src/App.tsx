@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Menu, Navigation, BookOpen, HelpCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Menu, Navigation, BookOpen, HelpCircle, Maximize2, Minimize2 } from 'lucide-react';
 import { translations } from './i18n';
 import SideMenu from './components/SideMenu';
 import HomePage from './pages/HomePage';
@@ -15,9 +15,69 @@ export default function App() {
   const [menuOpen, setMenuOpen] = useState<boolean>(false);
   const [lang, setLang] = useState<'fr' | 'en'>('fr');
   const [showHelp, setShowHelp] = useState<boolean>(false);
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const { theme } = useTheme();
 
   const t = translations[lang];
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(
+        !!(
+          document.fullscreenElement ||
+          (document as any).webkitFullscreenElement ||
+          (document as any).mozFullScreenElement ||
+          (document as any).msFullscreenElement
+        )
+      );
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
+    };
+  }, []);
+
+  const toggleFullscreen = async () => {
+    try {
+      if (!document.fullscreenElement && 
+          !(document as any).webkitFullscreenElement && 
+          !(document as any).mozFullScreenElement && 
+          !(document as any).msFullscreenElement) {
+        
+        const docElem = document.documentElement as any;
+        if (docElem.requestFullscreen) {
+          await docElem.requestFullscreen();
+        } else if (docElem.mozRequestFullScreen) {
+          await docElem.mozRequestFullScreen();
+        } else if (docElem.webkitRequestFullscreen) {
+          await docElem.webkitRequestFullscreen();
+        } else if (docElem.msRequestFullscreen) {
+          await docElem.msRequestFullscreen();
+        }
+      } else {
+        const doc = document as any;
+        if (doc.exitFullscreen) {
+          await doc.exitFullscreen();
+        } else if (doc.mozCancelFullScreen) {
+          await doc.mozCancelFullScreen();
+        } else if (doc.webkitExitFullscreen) {
+          await doc.webkitExitFullscreen();
+        } else if (doc.msExitFullscreen) {
+          await doc.msExitFullscreen();
+        }
+      }
+    } catch (err) {
+      console.error("Error attempting to toggle fullscreen mode:", err);
+    }
+  };
 
   // Helper function to render active page with complete state preservation
   const renderPage = () => {
@@ -60,13 +120,23 @@ export default function App() {
         
         {/* Top Navbar Header */}
         <header className="flex items-center justify-between pb-3 border-b border-theme-border-thin mt-1">
-          <button 
-            onClick={() => setMenuOpen(true)}
-            className="p-2.5 bg-theme-card border border-theme-border rounded-2xl text-theme-text hover:text-orange-400 hover:bg-theme-card-hover transition-all flex items-center justify-center shadow-lg hover:scale-105 active:scale-95"
-            title="Menu"
-          >
-            <Menu size={20} />
-          </button>
+          <div className="flex gap-2">
+            <button 
+              onClick={() => setMenuOpen(true)}
+              className="p-2.5 bg-theme-card border border-theme-border rounded-2xl text-theme-text hover:text-orange-400 hover:bg-theme-card-hover transition-all flex items-center justify-center shadow-lg hover:scale-105 active:scale-95"
+              title="Menu"
+            >
+              <Menu size={20} />
+            </button>
+            
+            <button
+              onClick={toggleFullscreen}
+              className="p-2.5 bg-theme-card border border-theme-border rounded-2xl text-theme-text hover:text-orange-400 hover:bg-theme-card-hover transition-all flex items-center justify-center shadow-lg hover:scale-105 active:scale-95"
+              title={isFullscreen ? (lang === 'fr' ? 'Quitter le plein écran' : 'Exit Fullscreen') : (lang === 'fr' ? 'Plein écran' : 'Fullscreen')}
+            >
+              {isFullscreen ? <Minimize2 size={20} /> : <Maximize2 size={20} />}
+            </button>
+          </div>
           
           <div className="flex items-center gap-1.5 select-none font-sans font-black text-lg bg-clip-text text-transparent bg-gradient-to-r from-orange-400 to-orange-500">
             <Navigation size={16} className="text-emerald-400 rotate-45 animate-pulse" />
