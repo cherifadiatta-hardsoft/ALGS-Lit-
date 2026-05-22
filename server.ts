@@ -1,9 +1,5 @@
 import express from "express";
 import path from "path";
-import { fileURLToPath } from "url";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 async function startServer() {
   const app = express();
@@ -45,7 +41,7 @@ async function startServer() {
     app.use(vite.middlewares);
   } else {
     console.log("Starting server in production mode with optimized static assets serving...");
-    const distPath = path.resolve(__dirname, "dist");
+    const distPath = path.resolve(process.cwd(), "dist");
     
     // Serve static files from 'dist' directory with cache-control optimization
     app.use(express.static(distPath, {
