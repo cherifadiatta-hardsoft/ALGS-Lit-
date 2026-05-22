@@ -63,9 +63,18 @@ async function startServer() {
     });
   }
 
-  app.listen(Number(PORT), "0.0.0.0", () => {
-    console.log(`Server successfully started. Listening on http://0.0.0.0:${PORT}`);
-  });
+  // If PORT is a number-like string, convert it, otherwise keep it as-is (e.g. named pipe or socket)
+  const listenPort = isNaN(Number(PORT)) ? PORT : Number(PORT);
+
+  if (typeof listenPort === "number") {
+    app.listen(listenPort, "0.0.0.0", () => {
+      console.log(`Server successfully started. Listening on http://0.0.0.0:${listenPort}`);
+    });
+  } else {
+    app.listen(listenPort, () => {
+      console.log(`Server successfully started. Listening on socket/pipe: ${listenPort}`);
+    });
+  }
 }
 
 startServer().catch((error) => {
