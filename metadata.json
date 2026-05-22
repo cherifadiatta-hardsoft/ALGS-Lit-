@@ -1,0 +1,8 @@
+{
+  "name": "ALGS",
+  "description": "Partagez votre position GPS en un clic avec votre livreur ou client via WhatsApp et ouvrez l'itinéraire sur Google Maps.",
+  "requestFramePermissions": [
+    "geolocation"
+  ],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
