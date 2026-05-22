@@ -97,11 +97,11 @@ export default function App() {
       case 'home': 
         return <HomePage t={t} lang={lang} />;
       case 'about': 
-        return <AboutPage t={t} />;
+        return <AboutPage t={t} lang={lang} />;
       case 'donate': 
-        return <DonatePage t={t} />;
+        return <DonatePage t={t} lang={lang} />;
       case 'roadmap': 
-        return <RoadmapPage t={t} />;
+        return <RoadmapPage t={t} lang={lang} />;
       case 'privacy':
         return <PrivacyPage t={t} lang={lang} onBackToHome={() => setPage('home')} />;
       case 'track':
@@ -210,7 +210,7 @@ export default function App() {
                     <div className="space-y-2">
                       <p className="font-bold text-theme-text text-[11px] uppercase tracking-wider text-orange-300">🔄 Flux Client (Partage vers Livreur) :</p>
                       <ol className="list-decimal pl-4 space-y-2 text-theme-text-secondary">
-                        <li>Saisissez le <strong>numéro du livreur</strong> (au format international, ex: <span className="font-mono text-orange-400">221782632977</span>).</li>
+                        <li>Saisissez le <strong>numéro du livreur</strong> (au format international, ex: <span className="font-mono text-orange-400">221770000000</span>).</li>
                         <li>Cliquez sur <strong>Partager ma position GPS</strong>.</li>
                         <li>L'application calcule vos coordonnées de haute précision et ouvre WhatsApp avec un message prérempli.</li>
                         <li>Le livreur clique et suit l'itinéraire sur <strong>Google Maps</strong>.</li>
@@ -231,7 +231,7 @@ export default function App() {
                     <div className="space-y-2">
                       <p className="font-bold text-theme-text text-[11px] uppercase tracking-wider text-orange-300">🔄 Client Flow (Share to Driver) :</p>
                       <ol className="list-decimal pl-4 space-y-2 text-theme-text-secondary">
-                        <li>Type the <strong>driver's number</strong> (with country code, eg: <span className="font-mono text-orange-400">221782632977</span>).</li>
+                        <li>Type the <strong>driver's number</strong> (with country code, eg: <span className="font-mono text-orange-400">221770000000</span>).</li>
                         <li>Click <strong>Share my GPS Location</strong>.</li>
                         <li>High precision coordinates are determined and deep-linked into WhatsApp with a ready message.</li>
                         <li>The driver opens the link to navigate directly using <strong>Google Maps</strong>.</li>
@@ -268,11 +268,6 @@ export default function App() {
       <footer className="w-full max-w-sm mx-auto text-center mt-12 space-y-2.5 relative z-10 select-none pb-2">
         <p className="text-[10px] text-theme-text-muted font-mono tracking-wide">
           ALGS v1.1.0 • PWA Enabled • Offline Responsive
-        </p>
-        <p className="text-[9px] text-theme-text-muted/70 leading-relaxed max-w-[280px] mx-auto">
-          {lang === 'fr' 
-            ? "Propulsé par la géolocalisation autonome haute fidélité. Aucun partage de données serveur."
-            : "Powered by high-precision on-device HTML5 GPS geolocation. Non-custodial privacy."}
         </p>
         <div className="pt-2.5 border-t border-theme-border-thin text-[10px] text-theme-text-muted">
           <span>Tout droit réservé • Développé par </span>

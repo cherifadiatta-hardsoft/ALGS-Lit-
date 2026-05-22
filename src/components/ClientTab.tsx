@@ -109,8 +109,8 @@ export default function ClientTab({ t, lang }: ClientTabProps) {
     if (!isValidInternationalPhone(driverPhone)) {
       setError(
         lang === 'fr' 
-          ? 'Format invalide. Assurez-vous d’entrer un numéro avec son code pays (ex: 221782632977).' 
-          : 'Invalid format. Standardize with county code (ex: 221782632977).'
+          ? 'Format invalide. Assurez-vous d’entrer un numéro avec son code pays (ex: 221770000000).' 
+          : 'Invalid format. Standardize with county code (ex: 221770000000).'
       );
       return;
     }
@@ -268,7 +268,7 @@ export default function ClientTab({ t, lang }: ClientTabProps) {
                   value={clientPhone}
                   onChange={(e) => setClientPhone(e.target.value)}
                   onBlur={handleSaveClientPhone}
-                  placeholder="221782632977"
+                  placeholder="221770000000"
                   className="w-full pl-8 pr-4 py-3 bg-theme-input rounded-2xl border border-theme-border text-theme-text placeholder-theme-text-muted/60 font-mono text-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none transition-all"
                 />
               </div>
@@ -291,7 +291,7 @@ export default function ClientTab({ t, lang }: ClientTabProps) {
                   value={driverPhone}
                   onChange={(e) => setDriverPhone(e.target.value)}
                   onBlur={handleSaveDriverPhone}
-                  placeholder="221782632977"
+                  placeholder="221770000000"
                   className="w-full pl-8 pr-12 py-3.5 bg-theme-input rounded-2xl border border-theme-border text-theme-text placeholder-theme-text-muted/60 font-mono text-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none transition-all"
                 />
                 <span className="absolute right-4 top-3.5">
@@ -301,8 +301,8 @@ export default function ClientTab({ t, lang }: ClientTabProps) {
               {showPhoneFormatWarning && (
                 <p className="text-[11px] text-amber-300 bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 rounded-lg mt-1">
                   {lang === 'fr'
-                    ? '💡 Format recommandé : Saisissez l’indicatif sans le signe "+" (ex: 221782632977 pour le Sénégal, 33... pour la France).'
-                    : '💡 Recommended format: Enter your country code and phone number without "+" (ex: 221782632977).'}
+                    ? '💡 Format recommandé : Saisissez l’indicatif sans le signe "+" (ex: 221770000000 pour le Sénégal, 33... pour la France).'
+                    : '💡 Recommended format: Enter your country code and phone number without "+" (ex: 221770000000).'}
                 </p>
               )}
             </div>
