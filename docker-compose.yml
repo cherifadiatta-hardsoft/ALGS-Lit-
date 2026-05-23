@@ -1,0 +1,82 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgis/postgis:16-3.4
+    container_name: postgis
+    environment:
+      POSTGRES_USER: dakar
+      POSTGRES_PASSWORD: dakar123
+      POSTGRES_DB: dakar_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./schema.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dakar"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+  osrm-backend:
+    image: osrm/osrm-backend:v5.27.1
+    container_name: osrm
+    depends_on:
+      - postgres
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./data:/data
+      - osrm_data:/opt/osrm
+    entrypoint: >
+      sh -c "
+      if [ ! -f /opt/osrm/dakar.osrm ]; then
+        echo 'Downloading Dakar OSM data...'
+        wget -O /data/dakar.osm.pbf https://download.geofabrik.de/africa/senegal-latest.osm.pbf
+        echo 'Extracting...'
+        osrm-extract -p /opt/car.lua /data/dakar.osm.pbf -o /opt/osrm/dakar.osrm
+        echo 'Partitioning...'
+        osrm-partition /opt/osrm/dakar.osrm
+        echo 'Customizing...'
+        osrm-customize /opt/osrm/dakar.osrm
+      fi
+      osrm-routed --algorithm mld /opt/osrm/dakar.osrm
+      "
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:5000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  pgadmin:
+    image: dpage/pgadmin4:8.6
+    container_name: pgadmin
+    depends_on:
+      - postgres
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@dakar.local
+      PGADMIN_DEFAULT_PASSWORD: admin123
+    ports:
+      - "8080:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    restart: unless-stopped
+
+volumes:
+  pg_data:
+  redis_data:
+  osrm_data:
+  pgadmin_data:

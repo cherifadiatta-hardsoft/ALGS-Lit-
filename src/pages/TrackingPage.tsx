@@ -12,7 +12,9 @@ import {
   XCircle,
   AlertCircle,
   RotateCw,
-  PhoneCall
+  PhoneCall,
+  Pause,
+  Play
 } from 'lucide-react';
 import { getShareRecord, subscribeToShareUpdates, ShareLocation, updateShareStatus } from '../utils/supabase';
 import { createGoogleMapsLink } from '../utils/geolocation';
@@ -28,6 +30,7 @@ export default function TrackingPage({ shareId, lang, onBackToHome }: TrackingPa
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
   const [updatingStatus, setUpdatingStatus] = useState<boolean>(false);
+  const [isStreamingActive, setIsStreamingActive] = useState<boolean>(true);
 
   useEffect(() => {
     let unsubscribe = () => {};
@@ -40,10 +43,12 @@ export default function TrackingPage({ shareId, lang, onBackToHome }: TrackingPa
         if (record) {
           setShare(record);
           
-          // Subscribe to real-time changes
-          unsubscribe = subscribeToShareUpdates(shareId, (updatedRecord) => {
-            setShare(updatedRecord);
-          });
+          if (isStreamingActive) {
+            // Subscribe to real-time changes
+            unsubscribe = subscribeToShareUpdates(shareId, (updatedRecord) => {
+              setShare(updatedRecord);
+            });
+          }
         } else {
           setError(
             lang === 'fr' 
@@ -63,12 +68,20 @@ export default function TrackingPage({ shareId, lang, onBackToHome }: TrackingPa
       }
     };
 
-    loadShare();
+    if (!share) {
+      loadShare();
+    } else {
+      if (isStreamingActive) {
+        unsubscribe = subscribeToShareUpdates(shareId, (updatedRecord) => {
+          setShare(updatedRecord);
+        });
+      }
+    }
 
     return () => {
       unsubscribe();
     };
-  }, [shareId, lang]);
+  }, [shareId, lang, isStreamingActive]);
 
   const handleUpdateStatus = async (newStatus: 'pending' | 'delivered' | 'canceled') => {
     if (!share) return;
@@ -160,8 +173,14 @@ export default function TrackingPage({ shareId, lang, onBackToHome }: TrackingPa
         >
           ← {lang === 'fr' ? "RETOUR" : "BACK"}
         </button>
-        <span className="text-[10px] font-mono text-theme-text-muted bg-theme-input px-3 py-1 border border-theme-border rounded-lg uppercase tracking-wider">
-          LIVE {lang === 'fr' ? 'ACTIVÉ' : 'ACTIVE'}
+        <span className={`text-[10px] font-mono px-3 py-1 border rounded-lg uppercase tracking-wider font-bold transition-all ${
+          isStreamingActive
+            ? 'text-emerald-400 bg-emerald-500/5 border-emerald-500/20'
+            : 'text-amber-400 bg-amber-500/5 border-amber-500/20'
+        }`}>
+          {isStreamingActive 
+            ? (lang === 'fr' ? 'LIVE ACTIF' : 'LIVE ACTIVE') 
+            : (lang === 'fr' ? 'LIVE EN PAUSE' : 'LIVE PAUSED')}
         </span>
       </div>
 
@@ -244,9 +263,38 @@ export default function TrackingPage({ shareId, lang, onBackToHome }: TrackingPa
 
         {/* Embedded Interactive Map Card */}
         <div className="space-y-2">
-          <label className="text-xs font-bold text-theme-text-secondary uppercase tracking-wider block">
-            {lang === 'fr' ? "Carte Interactive ALGS" : "ALGS Interactive Web Map"}
-          </label>
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-bold text-theme-text-secondary uppercase tracking-wider block">
+              {lang === 'fr' ? "Carte Interactive ALGS" : "ALGS Interactive Web Map"}
+            </label>
+            
+            {/* User-controlled Real-Time location streaming toggle */}
+            <div className="flex items-center gap-2">
+              <span className={`w-1.5 h-1.5 rounded-full ${isStreamingActive ? 'bg-emerald-500 animate-pulse' : 'bg-amber-400'}`} />
+              <button
+                type="button"
+                onClick={() => setIsStreamingActive(!isStreamingActive)}
+                className={`flex items-center gap-1 px-2.5 py-1 text-[10px] font-black tracking-wider uppercase rounded-lg border font-mono transition-all duration-200 outline-none select-none ${
+                  isStreamingActive 
+                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20' 
+                    : 'bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20'
+                }`}
+                title={isStreamingActive ? (lang === 'fr' ? "Mettre en pause le flux" : "Pause live updates") : (lang === 'fr' ? "Reprendre le flux" : "Resume live updates")}
+              >
+                {isStreamingActive ? (
+                  <>
+                    <Pause size={10} className="shrink-0" />
+                    <span>{lang === 'fr' ? 'PAUSER' : 'PAUSE'}</span>
+                  </>
+                ) : (
+                  <>
+                    <Play size={10} className="shrink-0" />
+                    <span>{lang === 'fr' ? 'REPRENDRE' : 'RESUME'}</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
           <div className="w-full h-80 rounded-2xl overflow-hidden border border-theme-border relative shadow-lg bg-theme-input">
             <iframe
               src={iframeSrc}

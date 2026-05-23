@@ -1,4 +1,4 @@
-import { X, Globe, Home, BookOpen, Heart, Compass, Shield } from 'lucide-react';
+import { X, Globe, Home, BookOpen, Heart, Compass, Shield, Activity } from 'lucide-react';
 import { TranslationSchema } from '../i18n';
 
 interface SideMenuProps {
@@ -14,6 +14,7 @@ interface SideMenuProps {
 export default function SideMenu({ isOpen, setIsOpen, page, setPage, lang, setLang, t }: SideMenuProps) {
   const menuItems = [
     { key: 'home', label: t.menu.home, icon: <Home size={18} /> },
+    { key: 'traffic', label: t.menu.traffic, icon: <Activity size={18} /> },
     { key: 'about', label: t.menu.about, icon: <BookOpen size={18} /> },
     { key: 'donate', label: t.menu.donate, icon: <Heart size={18} /> },
     { key: 'roadmap', label: t.menu.roadmap, icon: <Compass size={18} /> },

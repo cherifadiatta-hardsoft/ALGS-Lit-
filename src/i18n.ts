@@ -6,6 +6,7 @@ export interface TranslationSchema {
     donate: string;
     roadmap: string;
     privacy: string;
+    traffic: string;
   };
   about: {
     title: string;
@@ -76,7 +77,8 @@ export const translations: Record<'fr' | 'en', TranslationSchema> = {
       about: "À propos",
       donate: "Soutenir",
       roadmap: "Avenir",
-      privacy: "Confidentialité"
+      privacy: "Confidentialité",
+      traffic: "Trafic & Points Noirs"
     },
     about: {
       title: "ALGS Live - Livrez sans vous perdre",
@@ -164,7 +166,8 @@ export const translations: Record<'fr' | 'en', TranslationSchema> = {
       about: "About Us",
       donate: "Support Us",
       roadmap: "Future",
-      privacy: "Privacy Policy"
+      privacy: "Privacy Policy",
+      traffic: "Dakar Bottlenecks"
     },
     about: {
       title: "ALGS Live - Deliver without getting lost",

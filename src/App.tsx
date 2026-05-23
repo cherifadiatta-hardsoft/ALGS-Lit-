@@ -8,6 +8,7 @@ import DonatePage from './pages/DonatePage';
 import RoadmapPage from './pages/RoadmapPage';
 import PrivacyPage from './pages/PrivacyPage';
 import TrackingPage from './pages/TrackingPage';
+import TrafficPage from './pages/TrafficPage';
 import InstallPrompt from './components/InstallPrompt';
 import { useTheme } from './context/ThemeContext';
 
@@ -102,6 +103,8 @@ export default function App() {
         return <DonatePage t={t} lang={lang} />;
       case 'roadmap': 
         return <RoadmapPage t={t} lang={lang} />;
+      case 'traffic':
+        return <TrafficPage t={t} lang={lang} />;
       case 'privacy':
         return <PrivacyPage t={t} lang={lang} onBackToHome={() => setPage('home')} />;
       case 'track':
